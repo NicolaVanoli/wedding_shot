@@ -113,7 +113,17 @@ input:focus-visible,
     justify-items: center;
     align-items: center;
     gap: 10px;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+}
+
+body.home-centered .page-shell {
+    align-content: center;
+}
+
+body:not(.home-centered) .page-shell {
+    align-content: start;
 }
 
 .hero,

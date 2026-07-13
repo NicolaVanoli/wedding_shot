@@ -7,7 +7,7 @@
     const overlayProgressText = document.getElementById("overlay-progress-text");
     const overlayStatusText = document.getElementById("overlay-status-text");
     const toast = document.getElementById("toast");
-    const heroCard = document.querySelector(".hero-card");
+    const heroCard = document.querySelector(".hero");
     const lightbox = document.getElementById("preview-lightbox");
     const lightboxImage = document.getElementById("lightbox-image");
     const lightboxCloseButton = document.getElementById("lightbox-close-btn");
@@ -18,7 +18,9 @@
 
     function refreshHeroVisibility() {
         const hasActiveSelection = captureHasSelection || selectHasSelection;
-        heroCard.classList.toggle("is-hidden", hasActiveSelection);
+        if (heroCard) {
+            heroCard.classList.toggle("is-hidden", hasActiveSelection);
+        }
         document.body.classList.toggle("home-centered", !hasActiveSelection);
     }
 

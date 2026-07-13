@@ -21,7 +21,7 @@ wedding-site/
 
 1. Apri Google Drive.
 2. Crea una nuova cartella, per esempio `Foto matrimonio`.
-3. Apri la cartella e condividila con le persone che devono solo visualizzare i contenuti oppure lascia il link nel sito per l'accesso diretto.
+3. Apri la cartella e imposta la condivisione su `Chiunque abbia il link` con ruolo `Visualizzatore`.
 4. Il Google Apps Script dovra avere il permesso di scrivere in questa cartella.
 
 ## 2. Ottenere l'ID della cartella
@@ -102,6 +102,8 @@ Apri [js/config.js](js/config.js) e compila i due valori:
 ```javascript
 const CONFIG = {
     DRIVE_FOLDER_ID: "INCOLLA_QUI_ID_CARTELLA",
+  DRIVE_RESOURCE_KEY: "",
+  GALLERY_URL: "",
     APPS_SCRIPT_URL: "INCOLLA_QUI_URL_WEB_APP"
 };
 ```
@@ -126,7 +128,7 @@ https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxx/exec
 
 ## Uso del sito
 
-- `Vedi galleria` apre direttamente la cartella Google Drive in una nuova scheda.
+- `Vedi galleria` apre il link pubblico standard della cartella Google Drive (senza login se la cartella e condivisa come `Chiunque abbia il link`).
 - `Scatta foto o video` apre la fotocamera su smartphone tramite l'attributo `capture="environment"`.
 - `Carica da galleria` consente la selezione multipla di foto e video gia presenti sul dispositivo.
 - Prima dell'upload viene sempre mostrata un'anteprima con possibilita di rimuovere i file.
@@ -138,3 +140,7 @@ https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxx/exec
 - Nessun database.
 - Compatibile con GitHub Pages.
 - Frontend facilmente configurabile modificando solo [js/config.js](js/config.js).
+
+Suggerimento: se vuoi usare un URL specifico invece della vista automatica, imposta `GALLERY_URL` in [js/config.js](js/config.js) con il link pubblico della cartella.
+
+Se Google chiede ancora login, copia il link completo da `Condividi > Copia link` e incollalo in `GALLERY_URL` in [js/config.js](js/config.js). Alcune cartelle richiedono anche il parametro `resourcekey` per l'accesso anonimo.

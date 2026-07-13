@@ -78,12 +78,25 @@
     }
 
     function openDriveGallery() {
+        const customGalleryUrl = (CONFIG.GALLERY_URL || "").trim();
+        const resourceKey = (CONFIG.DRIVE_RESOURCE_KEY || "").trim();
+
+        if (customGalleryUrl) {
+            window.open(customGalleryUrl, "_blank", "noopener");
+            return;
+        }
+
         if (!CONFIG.DRIVE_FOLDER_ID) {
             showToast("Inserisci DRIVE_FOLDER_ID in js/config.js", "error");
             return;
         }
 
-        window.open(`https://drive.google.com/drive/folders/${CONFIG.DRIVE_FOLDER_ID}`, "_blank", "noopener");
+        // Some shared folders require resourcekey in the URL to open without account context.
+        const baseUrl = `https://drive.google.com/drive/folders/${encodeURIComponent(CONFIG.DRIVE_FOLDER_ID)}`;
+        const publicGalleryUrl = resourceKey
+            ? `${baseUrl}?usp=sharing&resourcekey=${encodeURIComponent(resourceKey)}`
+            : `${baseUrl}?usp=sharing`;
+        window.open(publicGalleryUrl, "_blank", "noopener");
     }
 
     const captureManager = new UploadManager({

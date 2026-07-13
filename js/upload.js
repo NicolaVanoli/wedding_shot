@@ -74,14 +74,27 @@
 
         // Mobile Safari/Chrome can reject Apps Script responses due to strict CORS checks.
         // Sending in no-cors mode still performs the POST and keeps the flow reliable.
+        const simulatedMaxProgress = 98;
+        const tickMs = 120;
+        const estimatedThroughputBytesPerSec = 2 * 1024 * 1024;
+        const estimatedDurationMs = Math.min(
+            45000,
+            Math.max(7000, Math.round((file.size / estimatedThroughputBytesPerSec) * 1000))
+        );
+        const startTs = Date.now();
         let progress = 0;
+
         const timerId = window.setInterval(function () {
-            progress = Math.min(progress + 4, 92);
+            const elapsed = Date.now() - startTs;
+            const linearTarget = Math.min(simulatedMaxProgress, (elapsed / estimatedDurationMs) * simulatedMaxProgress);
+            const step = Math.max(0.2, (linearTarget - progress) * 0.35);
+            progress = Math.min(simulatedMaxProgress, progress + step);
+
             if (typeof onProgress === "function") {
                 const loaded = Math.round((file.size * progress) / 100);
-                onProgress(progress, loaded, file.size);
+                onProgress(Math.round(progress), loaded, file.size);
             }
-        }, 140);
+        }, tickMs);
 
         try {
             await fetch(CONFIG.APPS_SCRIPT_URL, {

@@ -201,7 +201,7 @@
                 return sum + item.file.size;
             }, 0);
 
-            this.summary.textContent = `${this.selectedItems.length} file pronti · ${formatBytes(totalSize)}`;
+            this.summary.textContent = `${this.selectedItems.length} file pronto · ${formatBytes(totalSize)}`;
 
             this.selectedItems.forEach(function (item) {
                 const previewCard = document.createElement("article");
@@ -248,23 +248,8 @@
                 removeButton.setAttribute("aria-label", `Rimuovi ${item.file.name}`);
                 removeButton.textContent = "✕";
                 removeButton.addEventListener("click", this.removeItem.bind(this, item.id));
-
-                const meta = document.createElement("div");
-                meta.className = "preview-meta";
-
-                const name = document.createElement("div");
-                name.className = "preview-name";
-                name.textContent = item.file.name;
-
-                const size = document.createElement("div");
-                size.className = "preview-size";
-                size.textContent = formatBytes(item.file.size);
-
-                meta.appendChild(name);
-                meta.appendChild(size);
                 previewCard.appendChild(mediaElement);
                 previewCard.appendChild(removeButton);
-                previewCard.appendChild(meta);
                 this.previewList.appendChild(previewCard);
             }, this);
 

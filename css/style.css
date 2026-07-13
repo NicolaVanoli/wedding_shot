@@ -84,8 +84,19 @@ input:focus-visible,
     padding: 12px 0;
     display: grid;
     align-content: start;
+    justify-content: stretch;
+    justify-items: stretch;
+    align-items: center;
     gap: 10px;
     overflow: hidden;
+}
+
+body.home-centered .page-shell {
+    justify-content: center;
+}
+
+body:not(.home-centered) .page-shell {
+    justify-content: start;
 }
 
 .panels {

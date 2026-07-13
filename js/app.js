@@ -19,6 +19,7 @@
     function refreshHeroVisibility() {
         const hasActiveSelection = captureHasSelection || selectHasSelection;
         heroCard.classList.toggle("is-hidden", hasActiveSelection);
+        document.body.classList.toggle("home-centered", !hasActiveSelection);
     }
 
     function closePreviewLightbox() {

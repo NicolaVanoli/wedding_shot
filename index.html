@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Condividi foto e video del nostro matrimonio in modo semplice da smartphone o desktop.">
+    <title>Il nostro matrimonio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=20260713-6">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="background-glow background-glow-left" aria-hidden="true"></div>
+        <div class="background-glow background-glow-right" aria-hidden="true"></div>
+
+        <section class="panels" aria-label="File selezionati">
+            <article id="capture-panel" class="upload-card is-hidden" aria-live="polite">
+                <div class="card-header">
+                    <div>
+                        <p class="card-kicker">Scatto pronto</p>
+                        <h2>Controlla prima di caricare</h2>
+                    </div>
+                </div>
+
+                <div id="capture-preview-list" class="preview-grid"></div>
+
+                <div class="card-footer">
+                    <p id="capture-summary" class="selection-summary">Nessun file selezionato</p>
+                    <button id="capture-upload-btn" class="secondary-action" type="button" aria-label="Carica il file appena acquisito" disabled>
+                        Carica
+                    </button>
+                </div>
+            </article>
+
+            <article id="select-panel" class="upload-card is-hidden" aria-live="polite">
+                <div class="card-header">
+                    <div>
+                        <p class="card-kicker">Selezione pronta</p>
+                        <h2>Carica foto e video dal dispositivo</h2>
+                    </div>
+                </div>
+
+                <div id="select-preview-list" class="preview-grid"></div>
+
+                <div class="card-footer">
+                    <p id="select-summary" class="selection-summary">Nessun file selezionato</p>
+                    <button id="select-upload-btn" class="secondary-action" type="button" aria-label="Carica i file selezionati" disabled>
+                        Carica
+                    </button>
+                </div>
+            </article>
+        </section>
+
+        <main class="hero-card" aria-labelledby="site-title">
+            <p class="eyebrow">Un giorno da ricordare</p>
+            <h1 id="site-title">Il nostro matrimonio</h1>
+            <p class="subtitle">Condividi con noi i tuoi ricordi ❤️</p>
+
+            <section class="actions" aria-label="Azioni principali">
+                <button
+                    id="open-gallery-btn"
+                    class="primary-action"
+                    type="button"
+                    aria-label="Apri la galleria su Google Drive"
+                >
+                    <span class="action-emoji" aria-hidden="true">📸</span>
+                    <span>Vedi galleria</span>
+                </button>
+
+                <button
+                    id="capture-btn"
+                    class="primary-action"
+                    type="button"
+                    aria-label="Scatta una foto o registra un video"
+                >
+                    <span class="action-emoji" aria-hidden="true">📷</span>
+                    <span>Scatta foto o video</span>
+                </button>
+
+                <button
+                    id="select-btn"
+                    class="primary-action"
+                    type="button"
+                    aria-label="Seleziona foto o video dalla galleria del dispositivo"
+                >
+                    <span class="action-emoji" aria-hidden="true">🖼️</span>
+                    <span>Carica da galleria</span>
+                </button>
+            </section>
+
+            <input
+                id="capture-input"
+                class="sr-only"
+                type="file"
+                accept="image/*,video/*"
+                capture="environment"
+                aria-label="Scatta una foto o registra un video"
+            >
+
+            <input
+                id="select-input"
+                class="sr-only"
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                aria-label="Seleziona foto o video dalla galleria del dispositivo"
+            >
+        </main>
+    </div>
+
+    <div id="upload-overlay" class="upload-overlay is-hidden" aria-hidden="true">
+        <div class="overlay-card" role="status" aria-live="assertive">
+            <div class="loader-spinner" aria-hidden="true"></div>
+            <h2>Caricamento in corso...</h2>
+            <p id="overlay-status-text">Preparazione upload</p>
+            <div class="progress-track" aria-hidden="true">
+                <div id="overlay-progress-bar" class="progress-bar"></div>
+            </div>
+            <p id="overlay-progress-text" class="progress-label">0%</p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="preview-lightbox" class="preview-lightbox is-hidden" aria-hidden="true" role="dialog" aria-label="Anteprima immagine a schermo intero">
+        <button id="lightbox-close-btn" type="button" class="lightbox-close" aria-label="Chiudi anteprima">✕</button>
+        <img id="lightbox-image" class="lightbox-image" alt="Anteprima immagine a schermo intero">
+    </div>
+
+    <script src="js/config.js?v=20260713-6"></script>
+    <script src="js/upload.js?v=20260713-6"></script>
+    <script src="js/app.js?v=20260713-6"></script>
+</body>
+</html>

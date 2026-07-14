@@ -39,9 +39,11 @@ body {
     font-family: "Manrope", sans-serif;
     color: var(--ink);
     background:
-        radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.65), transparent 34%),
-        radial-gradient(circle at 92% 0%, rgba(217, 206, 188, 0.28), transparent 28%),
-        linear-gradient(165deg, #efe9de 0%, var(--paper) 56%, #ece5d6 100%);
+        linear-gradient(160deg, rgba(250, 246, 238, 0.72), rgba(239, 232, 218, 0.72)),
+        url("../assets/mare.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 body.is-busy,

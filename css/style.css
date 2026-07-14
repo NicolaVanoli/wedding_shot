@@ -181,6 +181,32 @@ h1 {
     line-height: 1.08;
 }
 
+#site-title {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    margin-inline: auto;
+    padding: 0.55rem 1rem;
+    background-color: #ffa672;
+    color: #000;
+    text-align: center;
+    position: relative;
+    transform: rotate(-1.5deg);
+    word-break: break-word;
+}
+
+#site-title::after {
+    content: "";
+    position: absolute;
+    border: 1px solid #000;
+    bottom: 4px;
+    left: 4px;
+    width: calc(100% - 1px);
+    height: calc(100% - 1px);
+    pointer-events: none;
+}
+
 .subtitle {
     margin: 8px auto 0;
     max-width: 28ch;

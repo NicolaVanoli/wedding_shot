@@ -1,5 +1,6 @@
 (function () {
     const activeObjectUrls = new Set();
+    const MAX_TOTAL_UPLOAD_BYTES = 0.5 * 1024 * 1024 * 1024;
 
     function formatBytes(bytes) {
         if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -284,12 +285,19 @@
                 return;
             }
 
-            this.isUploading = true;
-            this.render();
-
             const totalBytes = this.selectedItems.reduce(function (sum, item) {
                 return sum + item.file.size;
             }, 0);
+
+            if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+                this.onToast("I file superano la dimensione massima consentita di 0.5 GB", "error");
+                this.clearSelection();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                return;
+            }
+
+            this.isUploading = true;
+            this.render();
 
             let uploadedBytes = 0;
 

@@ -214,6 +214,26 @@ h1 {
     color: var(--ink-soft);
 }
 
+.subtitle + #site-title {
+    margin-top: 14px;
+}
+
+.title-photo {
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+}
+
+.title-photo-image {
+    width: 138px;
+    height: 138px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    border: 4px solid #efe2d1;
+    box-shadow: 0 0 0 1px #2a2723, 0 10px 24px rgba(41, 34, 22, 0.18);
+}
+
 .actions {
     margin-top: 16px;
     display: grid;

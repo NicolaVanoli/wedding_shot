@@ -129,7 +129,7 @@ https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxx/exec
 ## Uso del sito
 
 - `Vedi galleria` apre il link pubblico standard della cartella Google Drive (senza login se la cartella e condivisa come `Chiunque abbia il link`).
-- `Scatta foto o video` apre la fotocamera su smartphone tramite l'attributo `capture="environment"`.
+- `Scatta una foto` apre direttamente la fotocamera su smartphone tramite `accept="image/*"` e `capture="environment"`.
 - `Carica da galleria` consente la selezione multipla di foto e video gia presenti sul dispositivo.
 - Prima dell'upload viene sempre mostrata un'anteprima con possibilita di rimuovere i file.
 - Durante il caricamento tutti i pulsanti vengono disabilitati e compare un overlay con spinner, barra di avanzamento e percentuale.

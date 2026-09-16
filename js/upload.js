@@ -110,13 +110,13 @@
             try {
                 result = await response.json();
             } catch (error) {
-                throw new Error("Risposta non valida dal server di upload");
+                throw new Error("Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
             }
 
             if (!result || result.success !== true) {
                 throw new Error(result && result.error
                     ? `Upload rifiutato: ${result.error}`
-                    : "Il server non ha confermato il salvataggio del file");
+                    : "Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
             }
 
             window.clearInterval(timerId);
@@ -128,7 +128,7 @@
         } catch (error) {
             window.clearInterval(timerId);
             if (error instanceof TypeError) {
-                throw new Error("Endpoint Apps Script non raggiungibile o non autorizzato. Verifica la pubblicazione della Web App.");
+                throw new Error("Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
             }
             throw error;
         }

@@ -73,8 +73,6 @@
 
         const formData = buildUploadFormData(file, base64Data);
 
-        // Mobile Safari/Chrome can reject Apps Script responses due to strict CORS checks.
-        // Sending in no-cors mode still performs the POST and keeps the flow reliable.
         const simulatedMaxProgress = 98;
         const tickMs = 120;
         const estimatedThroughputBytesPerSec = 2 * 1024 * 1024;
@@ -98,12 +96,28 @@
         }, tickMs);
 
         try {
-            await fetch(CONFIG.APPS_SCRIPT_URL, {
+            const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
                 method: "POST",
                 body: formData,
-                mode: "no-cors",
                 cache: "no-store"
             });
+
+            if (!response.ok) {
+                throw new Error(`Il server ha risposto con errore HTTP ${response.status}`);
+            }
+
+            let result;
+            try {
+                result = await response.json();
+            } catch (error) {
+                throw new Error("Risposta non valida dal server di upload");
+            }
+
+            if (!result || result.success !== true) {
+                throw new Error(result && result.error
+                    ? `Upload rifiutato: ${result.error}`
+                    : "Il server non ha confermato il salvataggio del file");
+            }
 
             window.clearInterval(timerId);
             if (typeof onProgress === "function") {
@@ -113,7 +127,10 @@
             return { success: true };
         } catch (error) {
             window.clearInterval(timerId);
-            throw new Error("Errore di rete durante il caricamento");
+            if (error instanceof TypeError) {
+                throw new Error("Endpoint Apps Script non raggiungibile o non autorizzato. Verifica la pubblicazione della Web App.");
+            }
+            throw error;
         }
     }
 

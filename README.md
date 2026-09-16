@@ -90,6 +90,9 @@ function doPost(e) {
    - `Esegui come`: `Me`
    - `Chi ha accesso`: `Chiunque`
 8. Completa la distribuzione e autorizza lo script quando richiesto.
+9. Se modifichi il codice Apps Script, crea una nuova versione della distribuzione Web App. Copia quindi il nuovo URL `/exec` in `js/config.js`.
+
+Se l’upload mostra un errore HTTP `403`, la Web App non e pubblicata per l’accesso anonimo oppure l’URL configurato appartiene a una distribuzione vecchia o rimossa. La condivisione della cartella Drive non sostituisce i permessi della Web App.
 
 Nota: l'endpoint deve accettare richieste `POST` con `FormData` contenenti almeno `file` e `folderId`.
 

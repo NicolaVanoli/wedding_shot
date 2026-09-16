@@ -190,8 +190,8 @@ h1 {
     max-width: 100%;
     margin-inline: auto;
     padding: 0.55rem 1rem;
-    background-color: #ffa672;
-    color: #000;
+    background-color: #fbe869;
+    color: #000969;
     text-align: center;
     position: relative;
     transform: rotate(-1.5deg);
@@ -243,15 +243,15 @@ h1 {
 }
 
 .primary-action {
-    background-color: #e9b77f;
+    background-color: #faf483;
     border: 0 solid #e5e7eb;
     box-sizing: border-box;
-    color: #000;
+    color: #000969;
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
-    text-decoration: none solid #000;
+    text-decoration: none solid #000969;
     text-decoration-thickness: auto;
     width: 100%;
     max-width: 460px;
@@ -276,7 +276,7 @@ h1 {
 .primary-action::after {
     content: "";
     position: absolute;
-    border: 1px solid #000;
+    border: 1px solid #000969;
     bottom: 4px;
     left: 4px;
     width: calc(100% - 1px);
@@ -340,7 +340,7 @@ h2 {
 }
 
 .secondary-action {
-    background-color: #e9b77f;
+    background-color: #f5e584;
     border: 0 solid #e5e7eb;
     box-sizing: border-box;
     color: #000;

@@ -3,8 +3,6 @@
     const captureButton = document.getElementById("capture-btn");
     const selectButton = document.getElementById("select-btn");
     const overlay = document.getElementById("upload-overlay");
-    const overlayProgressBar = document.getElementById("overlay-progress-bar");
-    const overlayProgressText = document.getElementById("overlay-progress-text");
     const overlayStatusText = document.getElementById("overlay-status-text");
     const toast = document.getElementById("toast");
     const heroCard = document.querySelector(".hero");
@@ -72,8 +70,6 @@
             return;
         }
 
-        overlayProgressBar.style.width = `${details.progress || 0}%`;
-        overlayProgressText.textContent = `${details.progress || 0}%`;
         overlayStatusText.textContent = details.message || "Preparazione upload";
     }
 

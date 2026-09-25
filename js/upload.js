@@ -337,7 +337,7 @@
 
                         this.onBusyChange(true, {
                             progress: overallPercent,
-                            message: `Caricamento file ${index + 1} di ${this.selectedItems.length}`
+                            message: `Attendi qualche secondo...`
                         });
                     });
 

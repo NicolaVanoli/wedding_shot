@@ -1,6 +1,7 @@
 (function () {
     const activeObjectUrls = new Set();
     const MAX_TOTAL_UPLOAD_BYTES = 0.5 * 1024 * 1024 * 1024;
+    const SERVER_ACCESS_ERROR = "La Web App Google non e accessibile dal sito. Pubblica Apps Script come Chiunque e verifica che APPS_SCRIPT_URL punti all'ultima distribuzione /exec";
 
     function formatBytes(bytes) {
         if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -128,7 +129,7 @@
         } catch (error) {
             window.clearInterval(timerId);
             if (error instanceof TypeError) {
-                throw new Error("Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
+                throw new Error(SERVER_ACCESS_ERROR);
             }
             throw error;
         }

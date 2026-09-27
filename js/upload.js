@@ -111,7 +111,9 @@
             try {
                 result = await response.json();
             } catch (error) {
-                throw new Error("Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
+                const confirmationError = new Error("Il file potrebbe essere stato caricato, ma non riesco a verificare la risposta. Controlla Drive prima di riprovare.");
+                confirmationError.uploadOutcomeUnknown = true;
+                throw confirmationError;
             }
 
             if (!result || result.success !== true) {
@@ -129,7 +131,9 @@
         } catch (error) {
             window.clearInterval(timerId);
             if (error instanceof TypeError) {
-                throw new Error(SERVER_ACCESS_ERROR);
+                const connectionError = new Error("La richiesta potrebbe essere arrivata a Google, ma il browser non ha potuto verificare la risposta. Controlla Drive prima di riprovare.");
+                connectionError.uploadOutcomeUnknown = true;
+                throw connectionError;
             }
             throw error;
         }
@@ -352,7 +356,10 @@
                 this.onToast("Upload completato!", "success");
                 this.clearSelection();
             } catch (error) {
-                this.onToast(error.message || "Errore durante il caricamento", "error");
+                this.onToast(
+                    error.message || "Errore durante il caricamento",
+                    error.uploadOutcomeUnknown ? "warning" : "error"
+                );
             } finally {
                 this.isUploading = false;
                 this.onBusyChange(false, {

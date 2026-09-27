@@ -14,6 +14,23 @@
     let captureHasSelection = false;
     let selectHasSelection = false;
 
+    function showToast(message, type) {
+        if (type !== "success") {
+            window.clearTimeout(toastTimer);
+            toast.classList.remove("is-visible");
+            return;
+        }
+
+        toast.textContent = message;
+        toast.classList.add("is-visible");
+        toast.style.background = "rgba(64, 54, 46, 0.94)";
+
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(function () {
+            toast.classList.remove("is-visible");
+        }, 2600);
+    }
+
     function refreshHeroVisibility() {
         const hasActiveSelection = captureHasSelection || selectHasSelection;
         if (heroCard) {
@@ -43,19 +60,6 @@
     }
 
     window.openPreviewLightbox = openPreviewLightbox;
-
-    function showToast(message, type) {
-        toast.textContent = message;
-        toast.classList.add("is-visible");
-        toast.style.background = type === "error"
-            ? "rgba(140, 52, 52, 0.96)"
-            : "rgba(64, 54, 46, 0.94)";
-
-        window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(function () {
-            toast.classList.remove("is-visible");
-        }, 2600);
-    }
 
     function setBusyState(isBusy, details) {
         document.body.classList.toggle("is-busy", isBusy);

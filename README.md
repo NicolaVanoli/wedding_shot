@@ -118,13 +118,6 @@ function doPost(e) {
     };
     stagingFolder.createFile(completedName, JSON.stringify(result), MimeType.PLAIN_TEXT);
 
-    for (var cleanupIndex = 0; cleanupIndex < totalChunks; cleanupIndex += 1) {
-      var cleanupFiles = stagingFolder.getFilesByName(uploadId + '-' + cleanupIndex + '.part');
-      while (cleanupFiles.hasNext()) {
-        cleanupFiles.next().setTrashed(true);
-      }
-    }
-
     return uploadJson_(result);
   } catch (error) {
     return uploadJson_({ success: false, error: error.message });
@@ -165,7 +158,7 @@ function uploadJson_(value) {
 
 Se l'upload mostra un errore HTTP `403`, la Web App non e pubblicata per l'accesso anonimo oppure l'URL configurato appartiene a una distribuzione vecchia o rimossa. La condivisione della cartella Drive non sostituisce i permessi della Web App.
 
-Il frontend invia blocchi da 2 MB in Base64, con i campi `action`, `folderId`, `fileName`, `mimeType`, `uploadId`, `chunkIndex`, `totalChunks` e `chunkData`. Apps Script li conserva temporaneamente in Drive e ricompone il file al termine. I blocchi gia ricevuti possono essere ritentati senza creare file duplicati; il browser ritenta automaticamente ogni blocco fino a due volte.
+Il frontend invia blocchi da 2 MB in Base64, con i campi `action`, `folderId`, `fileName`, `mimeType`, `uploadId`, `chunkIndex`, `totalChunks` e `chunkData`. Apps Script li conserva temporaneamente in Drive e ricompone il file al termine. Dopo aver salvato il file e registrato la conferma anti-duplicato, risponde subito al browser. I temporanei `.part` e `.done` restano nella cartella `_matrimonio_upload_temp`: eliminali manualmente quando vuoi, senza cancellare file durante un caricamento. I blocchi gia ricevuti possono essere ritentati senza creare file duplicati; il browser ritenta automaticamente ogni blocco fino a due volte.
 
 Prima dell'invio, immagini superiori a 500 KB (esclusi GIF e SVG) vengono ridimensionate al massimo a 2560 px e convertite in WebP qualita 84, solo se il risultato e piu piccolo. Se la conversione non e supportata, viene inviato l'originale. I video non vengono compressi.
 

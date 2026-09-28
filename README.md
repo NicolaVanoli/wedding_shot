@@ -51,35 +51,106 @@ In questo caso l'ID della cartella e:
 ```javascript
 function doPost(e) {
   try {
-    var folderId = e.parameter.folderId;
-    var fileName = e.parameter.fileName;
-    var mimeType = e.parameter.mimeType;
-    var fileData = e.parameter.fileData;
+    var params = e && e.parameter ? e.parameter : {};
+    var folderId = params.folderId;
+    var fileName = params.fileName;
+    var mimeType = params.mimeType || 'application/octet-stream';
+    var uploadId = params.uploadId;
+    var chunkData = params.chunkData;
+    var chunkIndex = Number(params.chunkIndex);
+    var totalChunks = Number(params.totalChunks);
 
-    if (!folderId || !fileName || !fileData) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, error: 'Parametri mancanti' }))
-        .setMimeType(ContentService.MimeType.JSON);
+    if (params.action !== 'uploadChunk' || !folderId || !fileName || !uploadId || !chunkData) {
+      throw new Error('Parametri mancanti');
+    }
+    if (!/^[a-zA-Z0-9-]{1,100}$/.test(uploadId) ||
+        !Number.isInteger(chunkIndex) || !Number.isInteger(totalChunks) ||
+        totalChunks < 1 || totalChunks > 1024 || chunkIndex < 0 || chunkIndex >= totalChunks) {
+      throw new Error('Parametri del blocco non validi');
     }
 
-    var folder = DriveApp.getFolderById(folderId);
-    var bytes = Utilities.base64Decode(fileData);
-    var blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', fileName);
+    var stagingFolder = getUploadTempFolder_();
+    var completedName = uploadId + '.done';
+    var completedFiles = stagingFolder.getFilesByName(completedName);
+    if (completedFiles.hasNext()) {
+      return uploadJson_(JSON.parse(completedFiles.next().getBlob().getDataAsString()));
+    }
 
-    var savedFile = folder.createFile(blob);
+    var chunkName = uploadId + '-' + chunkIndex + '.part';
+    var oldChunks = stagingFolder.getFilesByName(chunkName);
+    while (oldChunks.hasNext()) {
+      oldChunks.next().setTrashed(true);
+    }
+    stagingFolder.createFile(chunkName, chunkData, MimeType.PLAIN_TEXT);
 
-    return ContentService
-      .createTextOutput(JSON.stringify({
-        success: true,
-        fileId: savedFile.getId(),
-        name: savedFile.getName()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+    if (chunkIndex < totalChunks - 1) {
+      return uploadJson_({ success: true, complete: false });
+    }
+
+    var decodedChunks = [];
+    var byteLength = 0;
+    for (var index = 0; index < totalChunks; index += 1) {
+      var partFiles = stagingFolder.getFilesByName(uploadId + '-' + index + '.part');
+      if (!partFiles.hasNext()) {
+        throw new Error('Manca il blocco ' + (index + 1) + ' di ' + totalChunks);
+      }
+      var partBytes = Utilities.base64Decode(partFiles.next().getBlob().getDataAsString());
+      decodedChunks.push(partBytes);
+      byteLength += partBytes.length;
+    }
+
+    var bytes = new Array(byteLength);
+    var offset = 0;
+    decodedChunks.forEach(function (partBytes) {
+      for (var byteIndex = 0; byteIndex < partBytes.length; byteIndex += 1) {
+        bytes[offset] = partBytes[byteIndex];
+        offset += 1;
+      }
+    });
+
+    var blob = Utilities.newBlob(bytes, mimeType, fileName);
+    var savedFile = DriveApp.getFolderById(folderId).createFile(blob);
+    var result = {
+      success: true,
+      complete: true,
+      fileId: savedFile.getId(),
+      name: savedFile.getName()
+    };
+    stagingFolder.createFile(completedName, JSON.stringify(result), MimeType.PLAIN_TEXT);
+
+    for (var cleanupIndex = 0; cleanupIndex < totalChunks; cleanupIndex += 1) {
+      var cleanupFiles = stagingFolder.getFilesByName(uploadId + '-' + cleanupIndex + '.part');
+      while (cleanupFiles.hasNext()) {
+        cleanupFiles.next().setTrashed(true);
+      }
+    }
+
+    return uploadJson_(result);
   } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return uploadJson_({ success: false, error: error.message });
   }
+}
+
+function getUploadTempFolder_() {
+  var properties = PropertiesService.getScriptProperties();
+  var folderId = properties.getProperty('UPLOAD_TEMP_FOLDER_ID');
+  if (folderId) {
+    try {
+      return DriveApp.getFolderById(folderId);
+    } catch (error) {
+      properties.deleteProperty('UPLOAD_TEMP_FOLDER_ID');
+    }
+  }
+
+  var folder = DriveApp.getRootFolder().createFolder('_matrimonio_upload_temp');
+  properties.setProperty('UPLOAD_TEMP_FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function uploadJson_(value) {
+  return ContentService
+    .createTextOutput(JSON.stringify(value))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 ```
 
@@ -92,11 +163,11 @@ function doPost(e) {
 8. Completa la distribuzione e autorizza lo script quando richiesto.
 9. Se modifichi il codice Apps Script, crea una nuova versione della distribuzione Web App. Copia quindi il nuovo URL `/exec` in `js/config.js`.
 
-Se l’upload mostra un errore HTTP `403`, la Web App non e pubblicata per l’accesso anonimo oppure l’URL configurato appartiene a una distribuzione vecchia o rimossa. La condivisione della cartella Drive non sostituisce i permessi della Web App.
+Se l'upload mostra un errore HTTP `403`, la Web App non e pubblicata per l'accesso anonimo oppure l'URL configurato appartiene a una distribuzione vecchia o rimossa. La condivisione della cartella Drive non sostituisce i permessi della Web App.
 
-Nota: l'endpoint deve accettare richieste `POST` con `FormData` contenenti almeno `file` e `folderId`.
+Il frontend invia blocchi da 512 KB in Base64, con i campi `action`, `folderId`, `fileName`, `mimeType`, `uploadId`, `chunkIndex`, `totalChunks` e `chunkData`. Apps Script li conserva temporaneamente in Drive e ricompone il file originale al termine. I blocchi gia ricevuti possono essere ritentati senza creare file duplicati; il browser ritenta automaticamente ogni blocco fino a due volte.
 
-Nota importante: questo frontend invia il contenuto del file come stringa Base64 dentro `FormData`, nei campi `fileData`, `fileName`, `mimeType` e `folderId`. Questa scelta evita i problemi di parsing dei file multipart nei Web App di Google Apps Script.
+Importante: dopo aver sostituito `Code.gs` con questo codice, crea una nuova versione della distribuzione Web App. Senza aggiornare Apps Script, il sito continuera a parlare il vecchio protocollo e gli upload falliranno. L'invio a blocchi riduce l'impatto delle interruzioni, ma Base64 continua ad aggiungere circa il 33% ai dati trasferiti.
 
 ## 4. Dove inserire l'URL dell'Apps Script
 

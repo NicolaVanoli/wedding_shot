@@ -1,6 +1,8 @@
 (function () {
     const activeObjectUrls = new Set();
     const MAX_TOTAL_UPLOAD_BYTES = 0.5 * 1024 * 1024 * 1024;
+    const UPLOAD_CHUNK_BYTES = 512 * 1024;
+    const MAX_CHUNK_RETRIES = 2;
     const SERVER_ACCESS_ERROR = "La Web App Google non e accessibile dal sito. Pubblica Apps Script come Chiunque e verifica che APPS_SCRIPT_URL punti all'ultima distribuzione /exec";
 
     function formatBytes(bytes) {
@@ -31,29 +33,101 @@
         activeObjectUrls.delete(url);
     }
 
-    function readFileAsDataUrl(file) {
+    function readBlobAsBase64(blob) {
         return new Promise(function (resolve, reject) {
             const reader = new FileReader();
 
             reader.addEventListener("load", function () {
-                resolve(reader.result);
+                const dataUrl = String(reader.result || "");
+                const separatorIndex = dataUrl.indexOf(",");
+                resolve(separatorIndex === -1 ? "" : dataUrl.slice(separatorIndex + 1));
             });
 
             reader.addEventListener("error", function () {
                 reject(new Error("Impossibile leggere il file selezionato"));
             });
 
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(blob);
         });
     }
 
-    function buildUploadFormData(file, base64Data) {
+    function buildUploadFormData(file, uploadId, chunkIndex, totalChunks, chunkData) {
         const formData = new FormData();
+        formData.append("action", "uploadChunk");
         formData.append("folderId", CONFIG.DRIVE_FOLDER_ID);
         formData.append("fileName", file.name);
         formData.append("mimeType", file.type || "application/octet-stream");
-        formData.append("fileData", base64Data);
+        formData.append("uploadId", uploadId);
+        formData.append("chunkIndex", String(chunkIndex));
+        formData.append("totalChunks", String(totalChunks));
+        formData.append("chunkData", chunkData);
         return formData;
+    }
+
+    function createUploadId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+            return window.crypto.randomUUID();
+        }
+
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function waitBeforeRetry(attempt) {
+        return new Promise(function (resolve) {
+            window.setTimeout(resolve, 600 * (attempt + 1));
+        });
+    }
+
+    async function sendChunk(formData) {
+        let lastError;
+
+        for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt += 1) {
+            try {
+                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: formData,
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    const httpError = new Error(`Il server ha risposto con errore HTTP ${response.status}`);
+                    httpError.retryable = response.status === 429 || response.status >= 500;
+                    throw httpError;
+                }
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (error) {
+                    const confirmationError = new Error("Google non ha restituito una risposta leggibile per questo blocco");
+                    confirmationError.uploadOutcomeUnknown = true;
+                    throw confirmationError;
+                }
+
+                if (!result || result.success !== true) {
+                    throw new Error(result && result.error
+                        ? `Upload rifiutato: ${result.error}`
+                        : "Il server non ha confermato la ricezione del blocco");
+                }
+
+                return result;
+            } catch (error) {
+                lastError = error;
+                const canRetry = error instanceof TypeError || error.uploadOutcomeUnknown || error.retryable;
+                if (!canRetry || attempt === MAX_CHUNK_RETRIES) {
+                    break;
+                }
+                await waitBeforeRetry(attempt);
+            }
+        }
+
+        if (lastError instanceof TypeError || (lastError && lastError.uploadOutcomeUnknown)) {
+            const connectionError = new Error("Non riesco a verificare l'esito del caricamento. Controlla Drive prima di riprovare.");
+            connectionError.uploadOutcomeUnknown = true;
+            throw connectionError;
+        }
+
+        throw lastError || new Error("Errore durante il caricamento del blocco");
     }
 
     async function uploadFile(file, onProgress) {
@@ -65,78 +139,35 @@
             throw new Error("Configura DRIVE_FOLDER_ID in js/config.js");
         }
 
-        const dataUrl = await readFileAsDataUrl(file);
-        const base64Data = String(dataUrl).split(",")[1];
-
-        if (!base64Data) {
-            throw new Error("Impossibile preparare il file per il caricamento");
+        if (!file.size) {
+            throw new Error("Il file selezionato e vuoto");
         }
 
-        const formData = buildUploadFormData(file, base64Data);
+        const totalChunks = Math.ceil(file.size / UPLOAD_CHUNK_BYTES);
+        const uploadId = createUploadId();
 
-        const simulatedMaxProgress = 98;
-        const tickMs = 120;
-        const estimatedThroughputBytesPerSec = 2 * 1024 * 1024;
-        const estimatedDurationMs = Math.min(
-            45000,
-            Math.max(7000, Math.round((file.size / estimatedThroughputBytesPerSec) * 1000))
-        );
-        const startTs = Date.now();
-        let progress = 0;
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+            const start = chunkIndex * UPLOAD_CHUNK_BYTES;
+            const end = Math.min(start + UPLOAD_CHUNK_BYTES, file.size);
+            const chunkData = await readBlobAsBase64(file.slice(start, end));
 
-        const timerId = window.setInterval(function () {
-            const elapsed = Date.now() - startTs;
-            const linearTarget = Math.min(simulatedMaxProgress, (elapsed / estimatedDurationMs) * simulatedMaxProgress);
-            const step = Math.max(0.2, (linearTarget - progress) * 0.35);
-            progress = Math.min(simulatedMaxProgress, progress + step);
+            if (!chunkData) {
+                throw new Error("Impossibile preparare un blocco del file per il caricamento");
+            }
+
+            const formData = buildUploadFormData(file, uploadId, chunkIndex, totalChunks, chunkData);
+            const result = await sendChunk(formData);
 
             if (typeof onProgress === "function") {
-                const loaded = Math.round((file.size * progress) / 100);
-                onProgress(Math.round(progress), loaded, file.size);
-            }
-        }, tickMs);
-
-        try {
-            const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: "POST",
-                body: formData,
-                cache: "no-store"
-            });
-
-            if (!response.ok) {
-                throw new Error(`Il server ha risposto con errore HTTP ${response.status}`);
+                onProgress(Math.round((end / file.size) * 100), end, file.size);
             }
 
-            let result;
-            try {
-                result = await response.json();
-            } catch (error) {
-                const confirmationError = new Error("Il file potrebbe essere stato caricato, ma non riesco a verificare la risposta. Controlla Drive prima di riprovare.");
-                confirmationError.uploadOutcomeUnknown = true;
-                throw confirmationError;
+            if (chunkIndex === totalChunks - 1 && result.complete !== true) {
+                throw new Error("Il server ha ricevuto i blocchi ma non ha confermato il salvataggio finale");
             }
-
-            if (!result || result.success !== true) {
-                throw new Error(result && result.error
-                    ? `Upload rifiutato: ${result.error}`
-                    : "Il server non ha confermato il salvataggio del file, verifica manualmente nella cartella di destinazione");
-            }
-
-            window.clearInterval(timerId);
-            if (typeof onProgress === "function") {
-                onProgress(100, file.size, file.size);
-            }
-
-            return { success: true };
-        } catch (error) {
-            window.clearInterval(timerId);
-            if (error instanceof TypeError) {
-                const connectionError = new Error("La richiesta potrebbe essere arrivata a Google, ma il browser non ha potuto verificare la risposta. Controlla Drive prima di riprovare.");
-                connectionError.uploadOutcomeUnknown = true;
-                throw connectionError;
-            }
-            throw error;
         }
+
+        return { success: true };
     }
 
     class UploadManager {

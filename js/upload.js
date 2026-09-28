@@ -1,7 +1,10 @@
 (function () {
     const activeObjectUrls = new Set();
     const MAX_TOTAL_UPLOAD_BYTES = 0.5 * 1024 * 1024 * 1024;
-    const UPLOAD_CHUNK_BYTES = 512 * 1024;
+    const UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
+    const MIN_IMAGE_COMPRESSION_BYTES = 500 * 1024;
+    const MAX_IMAGE_DIMENSION = 2560;
+    const WEBP_QUALITY = 0.84;
     const MAX_CHUNK_RETRIES = 2;
     const SERVER_ACCESS_ERROR = "La Web App Google non e accessibile dal sito. Pubblica Apps Script come Chiunque e verifica che APPS_SCRIPT_URL punti all'ultima distribuzione /exec";
 
@@ -22,6 +25,89 @@
 
     function isVideo(file) {
         return file.type.startsWith("video/");
+    }
+
+    function openImageForCompression(file) {
+        if (typeof window.createImageBitmap === "function") {
+            return window.createImageBitmap(file).then(function (bitmap) {
+                return {
+                    source: bitmap,
+                    width: bitmap.width,
+                    height: bitmap.height,
+                    cleanup: function () {
+                        bitmap.close();
+                    }
+                };
+            }).catch(function () {
+                return openImageElement(file);
+            });
+        }
+
+        return openImageElement(file);
+    }
+
+    function openImageElement(file) {
+        return new Promise(function (resolve, reject) {
+            const image = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            image.onload = function () {
+                resolve({
+                    source: image,
+                    width: image.naturalWidth,
+                    height: image.naturalHeight,
+                    cleanup: function () {
+                        URL.revokeObjectURL(objectUrl);
+                    }
+                });
+            };
+            image.onerror = function () {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error("Impossibile decodificare l'immagine"));
+            };
+            image.src = objectUrl;
+        });
+    }
+
+    async function prepareFileForUpload(file) {
+        if (!isImage(file) || file.size < MIN_IMAGE_COMPRESSION_BYTES ||
+            file.type === "image/gif" || file.type === "image/svg+xml") {
+            return file;
+        }
+
+        let image;
+        try {
+            image = await openImageForCompression(file);
+            const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.width, image.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+
+            const context = canvas.getContext("2d");
+            if (!context) {
+                return file;
+            }
+            context.drawImage(image.source, 0, 0, canvas.width, canvas.height);
+
+            const compressedBlob = await new Promise(function (resolve) {
+                canvas.toBlob(resolve, "image/webp", WEBP_QUALITY);
+            });
+
+            if (!compressedBlob || compressedBlob.type !== "image/webp" || compressedBlob.size >= file.size) {
+                return file;
+            }
+
+            const baseName = file.name.replace(/\.[^.]+$/, "");
+            return new File([compressedBlob], `${baseName}.webp`, {
+                type: "image/webp",
+                lastModified: file.lastModified
+            });
+        } catch (error) {
+            return file;
+        } finally {
+            if (image) {
+                image.cleanup();
+            }
+        }
     }
 
     function revokePreviewUrl(url) {
@@ -143,23 +229,25 @@
             throw new Error("Il file selezionato e vuoto");
         }
 
-        const totalChunks = Math.ceil(file.size / UPLOAD_CHUNK_BYTES);
+        const uploadFileData = await prepareFileForUpload(file);
+        const totalChunks = Math.ceil(uploadFileData.size / UPLOAD_CHUNK_BYTES);
         const uploadId = createUploadId();
 
         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
             const start = chunkIndex * UPLOAD_CHUNK_BYTES;
-            const end = Math.min(start + UPLOAD_CHUNK_BYTES, file.size);
-            const chunkData = await readBlobAsBase64(file.slice(start, end));
+            const end = Math.min(start + UPLOAD_CHUNK_BYTES, uploadFileData.size);
+            const chunkData = await readBlobAsBase64(uploadFileData.slice(start, end));
 
             if (!chunkData) {
                 throw new Error("Impossibile preparare un blocco del file per il caricamento");
             }
 
-            const formData = buildUploadFormData(file, uploadId, chunkIndex, totalChunks, chunkData);
+            const formData = buildUploadFormData(uploadFileData, uploadId, chunkIndex, totalChunks, chunkData);
             const result = await sendChunk(formData);
 
             if (typeof onProgress === "function") {
-                onProgress(Math.round((end / file.size) * 100), end, file.size);
+                const fileProgress = end / uploadFileData.size;
+                onProgress(Math.round(fileProgress * 100), Math.round(file.size * fileProgress), file.size);
             }
 
             if (chunkIndex === totalChunks - 1 && result.complete !== true) {

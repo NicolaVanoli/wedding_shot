@@ -165,7 +165,9 @@ function uploadJson_(value) {
 
 Se l'upload mostra un errore HTTP `403`, la Web App non e pubblicata per l'accesso anonimo oppure l'URL configurato appartiene a una distribuzione vecchia o rimossa. La condivisione della cartella Drive non sostituisce i permessi della Web App.
 
-Il frontend invia blocchi da 512 KB in Base64, con i campi `action`, `folderId`, `fileName`, `mimeType`, `uploadId`, `chunkIndex`, `totalChunks` e `chunkData`. Apps Script li conserva temporaneamente in Drive e ricompone il file originale al termine. I blocchi gia ricevuti possono essere ritentati senza creare file duplicati; il browser ritenta automaticamente ogni blocco fino a due volte.
+Il frontend invia blocchi da 2 MB in Base64, con i campi `action`, `folderId`, `fileName`, `mimeType`, `uploadId`, `chunkIndex`, `totalChunks` e `chunkData`. Apps Script li conserva temporaneamente in Drive e ricompone il file al termine. I blocchi gia ricevuti possono essere ritentati senza creare file duplicati; il browser ritenta automaticamente ogni blocco fino a due volte.
+
+Prima dell'invio, immagini superiori a 500 KB (esclusi GIF e SVG) vengono ridimensionate al massimo a 2560 px e convertite in WebP qualita 84, solo se il risultato e piu piccolo. Se la conversione non e supportata, viene inviato l'originale. I video non vengono compressi.
 
 Importante: dopo aver sostituito `Code.gs` con questo codice, crea una nuova versione della distribuzione Web App. Senza aggiornare Apps Script, il sito continuera a parlare il vecchio protocollo e gli upload falliranno. L'invio a blocchi riduce l'impatto delle interruzioni, ma Base64 continua ad aggiungere circa il 33% ai dati trasferiti.
 
